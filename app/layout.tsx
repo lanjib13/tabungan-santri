@@ -18,7 +18,12 @@ export const metadata: Metadata = {
   title: "Tabungan Santri | Ponpes Ihyaul Ulum Dukun Gresik",
   description: "Sistem Manajemen Tabungan Santri Pondok Pesantren Ihyaul Ulum Dukun Gresik",
   icons: {
-    icon: "/logo1.jpeg",
+    icon: [
+      { url: "/logo1.jpeg" },
+      { url: "/favicon.ico" },
+      { url: "/icon.jpeg" },
+    ],
+    shortcut: "/logo1.jpeg",
     apple: "/logo1.jpeg",
   },
 };
