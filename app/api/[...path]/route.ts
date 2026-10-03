@@ -16,8 +16,7 @@ async function handleProxy(
   const forwardHeaders = new Headers(request.headers);
   forwardHeaders.delete("host");
   forwardHeaders.delete("accept-encoding");
-  const clientOrigin = request.headers.get("origin") || request.nextUrl.origin || "http://localhost:3000";
-  forwardHeaders.set("origin", clientOrigin);
+  forwardHeaders.set("origin", "http://localhost:3000");
 
   let body: ArrayBuffer | undefined = undefined;
   if (!["GET", "HEAD"].includes(request.method.toUpperCase())) {
@@ -56,6 +55,8 @@ async function handleProxy(
       cleanCookie = cleanCookie
         .replace(/;\s*Secure/gi, "")
         .replace(/;\s*SameSite=None/gi, "; SameSite=Lax");
+    } else {
+      cleanCookie = cleanCookie.replace(/;\s*SameSite=None/gi, "; SameSite=Lax");
     }
     nextResponse.headers.append("set-cookie", cleanCookie);
   }
