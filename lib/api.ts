@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const rawUrl = (
-  process.env.NEXT_PUBLIC_API_URL ?? "https://be-tbg.onrender.com/api"
+  process.env.NEXT_PUBLIC_API_URL ?? "/api"
 ).replace(/\/+$/, "");
 const apiBaseUrl = rawUrl.endsWith("/api") ? rawUrl : `${rawUrl}/api`;
 
