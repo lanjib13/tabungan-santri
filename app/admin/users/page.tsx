@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { KeyRound, LoaderCircle, Pencil, Plus, Search, UserRoundX, X } from "lucide-react";
+import { KeyRound, LoaderCircle, Pencil, Plus, Search, UserRoundX, X, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -158,6 +158,14 @@ export default function UsersPage() {
     },
     onError: (error) => setActionError(error instanceof ApiError ? error.message : "Password gagal direset."),
   });
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiRequest(`/admin/users/${id}`, z.unknown(), { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["managed-users"] });
+      setNotice("Pengguna berhasil dihapus permanen.");
+    },
+    onError: (error) => setActionError(error instanceof ApiError ? error.message : "Pengguna gagal dihapus."),
+  });
 
   return (
     <AppShell>
@@ -192,6 +200,7 @@ export default function UsersPage() {
                       <button aria-label={`Edit ${user.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100" onClick={() => setDialogUser(user)} title="Edit pengguna" type="button"><Pencil size={16} /></button>
                       <button aria-label={`Reset password ${user.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100" onClick={() => { setActionError(""); setResetUser(user); }} title="Reset password" type="button"><KeyRound size={16} /></button>
                       <button aria-label={`${user.status === "active" ? "Nonaktifkan" : "Aktifkan"} ${user.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-red-50 hover:text-red-700" onClick={() => { setActionError(""); statusMutation.mutate({ id: user.id, status: user.status === "active" ? "inactive" : "active" }); }} title={user.status === "active" ? "Nonaktifkan pengguna" : "Aktifkan pengguna"} type="button"><UserRoundX size={16} /></button>
+                      <button aria-label={`Hapus permanen ${user.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-red-50 hover:text-red-700" onClick={() => { if (confirm(`Apakah Anda yakin ingin menghapus permanen pengguna ${user.name} beserta saldonya?`)) { setActionError(""); deleteMutation.mutate(user.id); } }} title="Hapus permanen pengguna" type="button"><Trash2 size={16} /></button>
                     </div></td>
                   </tr>
                 ))}
