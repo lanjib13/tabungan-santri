@@ -129,6 +129,7 @@ export default function UsersPage() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">("active");
   const [dialogUser, setDialogUser] = useState<ManagedUser | null | "create">(null);
   const [resetUser, setResetUser] = useState<ManagedUser | null>(null);
   const [createdCredentials, setCreatedCredentials] = useState<z.infer<typeof createdSchema> | null>(null);
@@ -137,8 +138,9 @@ export default function UsersPage() {
   const [actionError, setActionError] = useState("");
   const params = new URLSearchParams({ page: String(page), pageSize: "20" });
   if (search.trim()) params.set("search", search.trim());
+  if (statusFilter !== "all") params.set("status", statusFilter);
   const usersQuery = useQuery({
-    queryKey: ["managed-users", page, search],
+    queryKey: ["managed-users", page, search, statusFilter],
     queryFn: () => apiRequest(`/admin/users?${params.toString()}`, usersResponseSchema),
   });
 
@@ -162,7 +164,7 @@ export default function UsersPage() {
     mutationFn: (id: string) => apiRequest(`/admin/users/${id}`, z.unknown(), { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["managed-users"] });
-      setNotice("Pengguna berhasil dihapus permanen.");
+      setNotice("Pengguna dihapus dari daftar aktif. Riwayat transaksi dan saldo tetap tersimpan.");
     },
     onError: (error) => setActionError(error instanceof ApiError ? error.message : "Pengguna gagal dihapus."),
   });
@@ -185,11 +187,12 @@ export default function UsersPage() {
       <section className="border-y border-slate-200 bg-white">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
           <label className="relative block w-full max-w-sm"><span className="sr-only">Cari pengguna</span><Search aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} /><input className="h-10 w-full rounded-md border border-slate-300 pl-9 pr-3 text-sm outline-none focus:border-emerald-700" onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Cari nama atau username" value={search} /></label>
+          <select aria-label="Filter status pengguna" className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm" onChange={(event) => { setStatusFilter(event.target.value as typeof statusFilter); setPage(1); }} value={statusFilter}><option value="active">Pengguna aktif</option><option value="inactive">Pengguna nonaktif</option><option value="all">Semua pengguna</option></select>
           <span className="text-xs text-slate-500">{usersQuery.data?.pagination.total ?? 0} pengguna</span>
         </div>
         {usersQuery.isError ? <p className="px-5 py-8 text-sm text-red-700">{usersQuery.error.message}</p> : usersQuery.isPending ? <p className="px-5 py-8 text-sm text-slate-500">Memuat pengguna...</p> : usersQuery.data.items.length === 0 ? <p className="px-5 py-10 text-center text-sm text-slate-500">Tidak ada pengguna yang cocok.</p> : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[920px] text-left text-sm">
+            <table className="w-full min-w-230 text-left text-sm">
               <thead className="bg-slate-50 text-xs font-medium text-slate-500"><tr><th className="px-4 py-3">Nama</th><th className="px-4 py-3">Username</th><th className="px-4 py-3">No. rekening</th><th className="px-4 py-3">No. HP</th><th className="px-4 py-3 text-right">Saldo</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Aksi</th></tr></thead>
               <tbody className="divide-y divide-slate-100">
                 {usersQuery.data.items.map((user) => (
@@ -200,7 +203,7 @@ export default function UsersPage() {
                       <button aria-label={`Edit ${user.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100" onClick={() => setDialogUser(user)} title="Edit pengguna" type="button"><Pencil size={16} /></button>
                       <button aria-label={`Reset password ${user.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100" onClick={() => { setActionError(""); setResetUser(user); }} title="Reset password" type="button"><KeyRound size={16} /></button>
                       <button aria-label={`${user.status === "active" ? "Nonaktifkan" : "Aktifkan"} ${user.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-red-50 hover:text-red-700" onClick={() => { setActionError(""); statusMutation.mutate({ id: user.id, status: user.status === "active" ? "inactive" : "active" }); }} title={user.status === "active" ? "Nonaktifkan pengguna" : "Aktifkan pengguna"} type="button"><UserRoundX size={16} /></button>
-                      <button aria-label={`Hapus permanen ${user.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-red-50 hover:text-red-700" onClick={() => { if (confirm(`Apakah Anda yakin ingin menghapus permanen pengguna ${user.name} beserta saldonya?`)) { setActionError(""); deleteMutation.mutate(user.id); } }} title="Hapus permanen pengguna" type="button"><Trash2 size={16} /></button>
+                      {user.status === "active" && <button aria-label={`Hapus ${user.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-red-50 hover:text-red-700" disabled={deleteMutation.isPending} onClick={() => { if (confirm(`Hapus ${user.name} dari daftar aktif? Login dan transaksi baru akan dinonaktifkan; saldo dan riwayat tetap tersimpan.`)) { setActionError(""); deleteMutation.mutate(user.id); } }} title="Hapus dari daftar aktif" type="button"><Trash2 size={16} /></button>}
                     </div></td>
                   </tr>
                 ))}
