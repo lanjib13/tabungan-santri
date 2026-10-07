@@ -164,7 +164,7 @@ export default function UsersPage() {
     mutationFn: (id: string) => apiRequest(`/admin/users/${id}`, z.unknown(), { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["managed-users"] });
-      setNotice("Pengguna dihapus dari daftar aktif. Riwayat transaksi dan saldo tetap tersimpan.");
+      setNotice("Pengguna dan seluruh data terkait berhasil dihapus permanen.");
     },
     onError: (error) => setActionError(error instanceof ApiError ? error.message : "Pengguna gagal dihapus."),
   });
@@ -203,7 +203,7 @@ export default function UsersPage() {
                       <button aria-label={`Edit ${user.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100" onClick={() => setDialogUser(user)} title="Edit pengguna" type="button"><Pencil size={16} /></button>
                       <button aria-label={`Reset password ${user.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100" onClick={() => { setActionError(""); setResetUser(user); }} title="Reset password" type="button"><KeyRound size={16} /></button>
                       <button aria-label={`${user.status === "active" ? "Nonaktifkan" : "Aktifkan"} ${user.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-red-50 hover:text-red-700" onClick={() => { setActionError(""); statusMutation.mutate({ id: user.id, status: user.status === "active" ? "inactive" : "active" }); }} title={user.status === "active" ? "Nonaktifkan pengguna" : "Aktifkan pengguna"} type="button"><UserRoundX size={16} /></button>
-                      {user.status === "active" && <button aria-label={`Hapus ${user.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-red-50 hover:text-red-700" disabled={deleteMutation.isPending} onClick={() => { if (confirm(`Hapus ${user.name} dari daftar aktif? Login dan transaksi baru akan dinonaktifkan; saldo dan riwayat tetap tersimpan.`)) { setActionError(""); deleteMutation.mutate(user.id); } }} title="Hapus dari daftar aktif" type="button"><Trash2 size={16} /></button>}
+                      <button aria-label={`Hapus permanen ${user.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-red-50 hover:text-red-700" disabled={deleteMutation.isPending} onClick={() => { if (confirm(`HAPUS PERMANEN ${user.name}? Akun Auth, profil, rekening, saldo, dan seluruh transaksi pengguna ini akan dihapus dan tidak dapat dipulihkan.`)) { setActionError(""); deleteMutation.mutate(user.id); } }} title="Hapus permanen beserta seluruh data" type="button"><Trash2 size={16} /></button>
                     </div></td>
                   </tr>
                 ))}
