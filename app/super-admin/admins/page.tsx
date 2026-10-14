@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { KeyRound, LoaderCircle, Pencil, Plus, Search, ShieldCheck, X, Trash2 } from "lucide-react";
+import { AlertTriangle, KeyRound, LoaderCircle, Pencil, Plus, Search, ShieldCheck, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -64,6 +64,7 @@ export default function AdminsPage() {
   const [search, setSearch] = useState("");
   const [dialog, setDialog] = useState<ManagedAdmin | null | "create">(null);
   const [resetAdmin, setResetAdmin] = useState<ManagedAdmin | null>(null);
+  const [deleteAdmin, setDeleteAdmin] = useState<ManagedAdmin | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [created, setCreated] = useState<z.infer<typeof createdSchema> | null>(null);
   const [error, setError] = useState("");
@@ -79,7 +80,7 @@ export default function AdminsPage() {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["managed-admins"] });
   const statusMutation = useMutation({ mutationFn: ({ id, status }: { id: string; status: "active" | "inactive" }) => apiRequest(`/super-admin/admins/${id}/status`, z.unknown(), { method: "PATCH", body: JSON.stringify({ status }) }), onSuccess: invalidate, onError: () => setError("Status Admin gagal diubah.") });
   const resetMutation = useMutation({ mutationFn: ({ id, password }: { id: string; password: string }) => apiRequest(`/super-admin/admins/${id}/reset-password`, z.unknown(), { method: "POST", body: JSON.stringify({ password }) }), onSuccess: () => { setResetAdmin(null); setNewPassword(""); setError("Password Admin berhasil direset."); }, onError: () => setError("Password Admin gagal direset.") });
-  const deleteMutation = useMutation({ mutationFn: (id: string) => apiRequest(`/super-admin/admins/${id}`, z.unknown(), { method: "DELETE" }), onSuccess: () => { invalidate(); setError("Admin berhasil dihapus permanen."); }, onError: () => setError("Admin gagal dihapus.") });
+  const deleteMutation = useMutation({ mutationFn: (id: string) => apiRequest(`/super-admin/admins/${id}`, z.unknown(), { method: "DELETE" }), onSuccess: () => { setDeleteAdmin(null); invalidate(); setError("Admin berhasil dihapus permanen."); }, onError: () => setError("Admin gagal dihapus.") });
 
   return (
     <AppShell>
@@ -89,12 +90,64 @@ export default function AdminsPage() {
       <section className="border-y border-slate-200 bg-white">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3"><label className="relative block w-full max-w-sm"><span className="sr-only">Cari Admin</span><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} /><input className="h-10 w-full rounded-md border border-slate-300 pl-9 pr-3 text-sm" onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Cari nama atau username" value={search} /></label><span className="text-xs text-slate-500">{adminsQuery.data?.pagination.total ?? 0} Admin</span></div>
         {adminsQuery.isError ? <p className="px-5 py-8 text-sm text-red-700">{adminsQuery.error.message}</p> : adminsQuery.isPending ? <p className="px-5 py-8 text-sm text-slate-500">Memuat Admin...</p> : adminsQuery.data.items.length === 0 ? <p className="px-5 py-10 text-center text-sm text-slate-500">Belum ada Admin.</p> : (
-          <div className="overflow-x-auto"><table className="w-full min-w-175 text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr><th className="px-5 py-3">Nama</th><th className="px-4 py-3">Username</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Status</th><th className="px-5 py-3 text-right">Aksi</th></tr></thead><tbody className="divide-y divide-slate-100">{adminsQuery.data.items.map((admin) => <tr key={admin.id}><td className="px-5 py-3.5 font-medium text-slate-900">{admin.name}</td><td className="px-4 py-3.5 text-slate-600">{admin.username}</td><td className="px-4 py-3.5 text-slate-600">{admin.email || "—"}</td><td className="px-4 py-3.5"><span className={`rounded-full px-2.5 py-1 text-xs ${admin.status === "active" ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>{admin.status === "active" ? "Aktif" : "Nonaktif"}</span></td><td className="px-5 py-3.5"><div className="flex justify-end gap-1"><button aria-label={`Edit ${admin.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100" onClick={() => setDialog(admin)} title="Edit Admin" type="button"><Pencil size={16} /></button><button aria-label={`Reset password ${admin.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100" onClick={() => setResetAdmin(admin)} title="Reset password" type="button"><KeyRound size={16} /></button><button aria-label={`${admin.status === "active" ? "Nonaktifkan" : "Aktifkan"} ${admin.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-amber-50 hover:text-amber-800" onClick={() => statusMutation.mutate({ id: admin.id, status: admin.status === "active" ? "inactive" : "active" })} title={admin.status === "active" ? "Nonaktifkan Admin" : "Aktifkan Admin"} type="button"><ShieldCheck size={16} /></button><button aria-label={`Hapus permanen ${admin.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-red-50 hover:text-red-700" onClick={() => { if (confirm(`Apakah Anda yakin ingin menghapus permanen admin ${admin.name}?`)) { setError(""); deleteMutation.mutate(admin.id); } }} title="Hapus permanen Admin" type="button"><Trash2 size={16} /></button></div></td></tr>)}</tbody></table></div>
+          <div className="overflow-x-auto"><table className="w-full min-w-175 text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr><th className="px-5 py-3">Nama</th><th className="px-4 py-3">Username</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Status</th><th className="px-5 py-3 text-right">Aksi</th></tr></thead><tbody className="divide-y divide-slate-100">{adminsQuery.data.items.map((admin) => <tr key={admin.id}><td className="px-5 py-3.5 font-medium text-slate-900">{admin.name}</td><td className="px-4 py-3.5 text-slate-600">{admin.username}</td><td className="px-4 py-3.5 text-slate-600">{admin.email || "—"}</td><td className="px-4 py-3.5"><span className={`rounded-full px-2.5 py-1 text-xs ${admin.status === "active" ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>{admin.status === "active" ? "Aktif" : "Nonaktif"}</span></td><td className="px-5 py-3.5"><div className="flex justify-end gap-1"><button aria-label={`Edit ${admin.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100" onClick={() => setDialog(admin)} title="Edit Admin" type="button"><Pencil size={16} /></button><button aria-label={`Reset password ${admin.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100" onClick={() => setResetAdmin(admin)} title="Reset password" type="button"><KeyRound size={16} /></button><button aria-label={`${admin.status === "active" ? "Nonaktifkan" : "Aktifkan"} ${admin.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-amber-50 hover:text-amber-800" onClick={() => statusMutation.mutate({ id: admin.id, status: admin.status === "active" ? "inactive" : "active" })} title={admin.status === "active" ? "Nonaktifkan Admin" : "Aktifkan Admin"} type="button"><ShieldCheck size={16} /></button><button aria-label={`Hapus permanen ${admin.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-red-50 hover:text-red-700" onClick={() => setDeleteAdmin(admin)} title="Hapus permanen Admin" type="button"><Trash2 size={16} /></button></div></td></tr>)}</tbody></table></div>
         )}
         <div className="flex justify-between border-t border-slate-200 px-4 py-3"><span className="text-xs text-slate-500">Halaman {page}</span><div className="flex gap-2"><button className="h-8 rounded-md border border-slate-300 px-3 text-xs disabled:opacity-40" disabled={page <= 1} onClick={() => setPage((current) => current - 1)} type="button">Sebelumnya</button><button className="h-8 rounded-md border border-slate-300 px-3 text-xs disabled:opacity-40" disabled={!adminsQuery.data || page * adminsQuery.data.pagination.pageSize >= adminsQuery.data.pagination.total} onClick={() => setPage((current) => current + 1)} type="button">Berikutnya</button></div></div>
       </section>
       {dialog !== null && <AdminDialog admin={dialog === "create" ? null : dialog} close={() => setDialog(null)} onCreated={(item) => { setCreated(item); void invalidate(); }} />}
       {resetAdmin && <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4" role="presentation"><form aria-labelledby="reset-admin-title" aria-modal="true" className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-5 shadow-xl" onSubmit={(event) => { event.preventDefault(); const parsed = resetSchema.safeParse({ password: newPassword }); if (parsed.success) resetMutation.mutate({ id: resetAdmin.id, password: parsed.data.password }); }} role="dialog"><div className="flex items-center justify-between"><h2 className="text-base font-semibold" id="reset-admin-title">Reset password Admin</h2><button aria-label="Tutup" onClick={() => setResetAdmin(null)} type="button"><X size={18} /></button></div><p className="mt-2 text-sm text-slate-600">Admin: {resetAdmin.name}</p><input autoComplete="new-password" className="mt-4 h-10 w-full rounded-md border border-slate-300 px-3 text-sm" onChange={(event) => setNewPassword(event.target.value)} placeholder="Password baru (min. 10 karakter)" type="password" value={newPassword} /><div className="mt-5 flex justify-end gap-2"><button className="h-9 rounded-md border border-slate-300 px-3 text-sm" onClick={() => setResetAdmin(null)} type="button">Batal</button><button className="h-9 rounded-md bg-emerald-800 px-3 text-sm font-medium text-white disabled:opacity-50" disabled={newPassword.length < 10 || resetMutation.isPending} type="submit">Reset password</button></div></form></div>}
+
+      {deleteAdmin && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4" role="presentation">
+          <div aria-labelledby="delete-admin-title" aria-modal="true" className="w-full max-w-md rounded-lg border border-red-200 bg-white p-6 shadow-2xl" role="dialog">
+            <div className="flex items-start gap-3">
+              <div className="rounded-full bg-red-100 p-2 text-red-600">
+                <AlertTriangle size={22} />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-base font-semibold text-slate-950" id="delete-admin-title">Hapus Admin Permanen</h2>
+                <p className="mt-1 text-xs text-slate-500">Tindakan ini tidak dapat dibatalkan</p>
+              </div>
+              <button aria-label="Tutup" className="text-slate-400 hover:text-slate-600" onClick={() => setDeleteAdmin(null)} type="button">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-3.5 text-sm">
+              <p className="font-semibold text-slate-900">{deleteAdmin.name}</p>
+              <p className="text-xs text-slate-600">Username: <span className="font-mono text-slate-800">{deleteAdmin.username}</span></p>
+              <p className="text-xs text-slate-600">Email: <span className="text-slate-800">{deleteAdmin.email || "—"}</span></p>
+            </div>
+
+            <p className="mt-3 rounded border border-red-200 bg-red-50 p-2.5 text-xs leading-relaxed text-red-700">
+              <strong>Peringatan:</strong> Akun admin ini dan akses loginnya akan <strong>DIHAPUS BERSIH SECARA PERMANEN</strong> dari database. Riwayat transaksi yang pernah dicatat oleh admin ini akan tetap dipertahankan dengan aman.
+            </p>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                className="h-9 rounded-md border border-slate-300 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                disabled={deleteMutation.isPending}
+                onClick={() => setDeleteAdmin(null)}
+                type="button"
+              >
+                Batal
+              </button>
+              <button
+                className="inline-flex h-9 items-center gap-1.5 rounded-md bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                disabled={deleteMutation.isPending}
+                onClick={() => {
+                  setError("");
+                  deleteMutation.mutate(deleteAdmin.id);
+                }}
+                type="button"
+              >
+                {deleteMutation.isPending ? <LoaderCircle className="animate-spin" size={15} /> : <Trash2 size={15} />}
+                {deleteMutation.isPending ? "Menghapus..." : "Ya, Hapus Permanen"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

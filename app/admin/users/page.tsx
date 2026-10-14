@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { KeyRound, LoaderCircle, Pencil, Plus, Search, UserRoundX, X, Trash2 } from "lucide-react";
+import { AlertTriangle, KeyRound, LoaderCircle, Pencil, Plus, Power, Search, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -132,6 +132,7 @@ export default function UsersPage() {
   const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">("active");
   const [dialogUser, setDialogUser] = useState<ManagedUser | null | "create">(null);
   const [resetUser, setResetUser] = useState<ManagedUser | null>(null);
+  const [deleteUser, setDeleteUser] = useState<ManagedUser | null>(null);
   const [createdCredentials, setCreatedCredentials] = useState<z.infer<typeof createdSchema> | null>(null);
   const [notice, setNotice] = useState("");
   const [resetPassword, setResetPassword] = useState("");
@@ -153,6 +154,7 @@ export default function UsersPage() {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["reports"] });
+      setNotice("Status akun pengguna berhasil diperbarui.");
     },
     onError: (error) => setActionError(error instanceof ApiError ? error.message : "Status gagal diubah."),
   });
@@ -169,6 +171,7 @@ export default function UsersPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiRequest(`/admin/users/${id}`, z.unknown(), { method: "DELETE" }),
     onSuccess: () => {
+      setDeleteUser(null);
       queryClient.invalidateQueries({ queryKey: ["managed-users"] });
       queryClient.invalidateQueries({ queryKey: ["savings"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
@@ -212,8 +215,8 @@ export default function UsersPage() {
                     <td className="px-4 py-3.5"><div className="flex justify-end gap-1">
                       <button aria-label={`Edit ${user.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100" onClick={() => setDialogUser(user)} title="Edit pengguna" type="button"><Pencil size={16} /></button>
                       <button aria-label={`Reset password ${user.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100" onClick={() => { setActionError(""); setResetUser(user); }} title="Reset password" type="button"><KeyRound size={16} /></button>
-                      <button aria-label={`${user.status === "active" ? "Nonaktifkan" : "Aktifkan"} ${user.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-amber-50 hover:text-amber-700" onClick={() => { setActionError(""); statusMutation.mutate({ id: user.id, status: user.status === "active" ? "inactive" : "active" }); }} title={user.status === "active" ? "Nonaktifkan pengguna (sementara)" : "Aktifkan pengguna"} type="button"><UserRoundX size={16} /></button>
-                      <button aria-label={`Hapus permanen ${user.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-red-50 hover:text-red-700" disabled={deleteMutation.isPending} onClick={() => { if (confirm(`HAPUS PERMANEN ${user.name}?\n\nSemua data rekening, saldo tabungan, riwayat transaksi, dan akun pengguna ini akan DIHAPUS TOTAL dari database dan tidak dapat dipulihkan.`)) { setActionError(""); deleteMutation.mutate(user.id); } }} title="Hapus permanen beserta tabungan & riwayat transaksi" type="button"><Trash2 size={16} /></button>
+                      <button aria-label={`${user.status === "active" ? "Nonaktifkan sementara" : "Aktifkan"} ${user.name}`} className={`inline-flex size-8 items-center justify-center rounded-md ${user.status === "active" ? "text-slate-600 hover:bg-amber-50 hover:text-amber-700" : "text-emerald-700 hover:bg-emerald-50"}`} onClick={() => { setActionError(""); statusMutation.mutate({ id: user.id, status: user.status === "active" ? "inactive" : "active" }); }} title={user.status === "active" ? "Nonaktifkan pengguna sementara (bukan hapus)" : "Aktifkan akun pengguna"} type="button"><Power size={15} /></button>
+                      <button aria-label={`Hapus permanen ${user.name}`} className="inline-flex size-8 items-center justify-center rounded-md text-slate-600 hover:bg-red-50 hover:text-red-700" disabled={deleteMutation.isPending} onClick={() => { setActionError(""); setDeleteUser(user); }} title="Hapus permanen pengguna beserta seluruh data & tabungan" type="button"><Trash2 size={16} /></button>
                     </div></td>
                   </tr>
                 ))}
@@ -234,6 +237,61 @@ export default function UsersPage() {
             {actionError && <p className="mt-2 text-sm text-red-700">{actionError}</p>}
             <div className="mt-5 flex justify-end gap-2"><button className="h-9 rounded-md border border-slate-300 px-3 text-sm" onClick={() => setResetUser(null)} type="button">Batal</button><button className="h-9 rounded-md bg-emerald-800 px-3 text-sm font-medium text-white disabled:opacity-50" disabled={resetMutation.isPending || resetPassword.length < 10} type="submit">Reset password</button></div>
           </form>
+        </div>
+      )}
+
+      {deleteUser && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4" role="presentation">
+          <div aria-labelledby="delete-title" aria-modal="true" className="w-full max-w-md rounded-lg border border-red-200 bg-white p-6 shadow-2xl" role="dialog">
+            <div className="flex items-start gap-3">
+              <div className="rounded-full bg-red-100 p-2 text-red-600">
+                <AlertTriangle size={22} />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-base font-semibold text-slate-950" id="delete-title">Hapus Pengguna Permanen</h2>
+                <p className="mt-1 text-xs text-slate-500">Tindakan ini tidak dapat dibatalkan</p>
+              </div>
+              <button aria-label="Tutup" className="text-slate-400 hover:text-slate-600" onClick={() => setDeleteUser(null)} type="button">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-3.5 text-sm">
+              <p className="font-semibold text-slate-900">{deleteUser.name}</p>
+              <p className="text-xs text-slate-600">Username: <span className="font-mono text-slate-800">{deleteUser.username}</span></p>
+              <p className="text-xs text-slate-600">No. Rekening: <span className="font-mono text-slate-800">{deleteUser.savings?.nomor_rekening ?? "—"}</span></p>
+              <p className="text-xs text-slate-600">Saldo saat ini: <span className="font-semibold text-slate-900">{deleteUser.savings ? rupiah(deleteUser.savings.saldo) : "—"}</span></p>
+            </div>
+
+            <p className="mt-3 rounded border border-red-200 bg-red-50 p-2.5 text-xs leading-relaxed text-red-700">
+              <strong>Peringatan:</strong> Seluruh data pengguna ini, termasuk akun login (Auth), data diri santri, rekening tabungan, dan seluruh riwayat transaksi akan <strong>DIHAPUS BERSIH SECARA PERMANEN</strong> dari database.
+            </p>
+
+            {actionError && <p className="mt-2 text-xs text-red-700">{actionError}</p>}
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                className="h-9 rounded-md border border-slate-300 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                disabled={deleteMutation.isPending}
+                onClick={() => setDeleteUser(null)}
+                type="button"
+              >
+                Batal
+              </button>
+              <button
+                className="inline-flex h-9 items-center gap-1.5 rounded-md bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                disabled={deleteMutation.isPending}
+                onClick={() => {
+                  setActionError("");
+                  deleteMutation.mutate(deleteUser.id);
+                }}
+                type="button"
+              >
+                {deleteMutation.isPending ? <LoaderCircle className="animate-spin" size={15} /> : <Trash2 size={15} />}
+                {deleteMutation.isPending ? "Menghapus..." : "Ya, Hapus Permanen"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </AppShell>
