@@ -194,8 +194,22 @@ export default function UsersPage() {
           <div className="flex items-start justify-between gap-4"><div><p className="font-semibold">Pengguna berhasil dibuat</p><p className="mt-2">Username: <strong>{createdCredentials.username}</strong> · Password awal: <strong>{createdCredentials.initialPassword}</strong></p><p className="mt-1">Nomor rekening: <strong>{createdCredentials.nomorRekening}</strong>. Simpan kredensial sekarang; password tidak ditampilkan lagi.</p></div><button aria-label="Tutup" className="text-emerald-900" onClick={() => setCreatedCredentials(null)} type="button"><X size={17} /></button></div>
         </section>
       )}
-      {notice && <p className="mb-4 border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900" role="status">{notice}</p>}
-      {actionError && <p className="mb-4 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">{actionError}</p>}
+      {notice && (
+        <section className="mb-4 flex items-center justify-between border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900" role="status">
+          <span>{notice}</span>
+          <button aria-label="Tutup pemberitahuan" className="text-emerald-800 hover:text-emerald-950" onClick={() => setNotice("")} type="button">
+            <X size={16} />
+          </button>
+        </section>
+      )}
+      {actionError && (
+        <section className="mb-4 flex items-center justify-between border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+          <span>{actionError}</span>
+          <button aria-label="Tutup pesan kesalahan" className="text-red-700 hover:text-red-900" onClick={() => setActionError("")} type="button">
+            <X size={16} />
+          </button>
+        </section>
+      )}
 
       <section className="border-y border-slate-200 bg-white">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">

@@ -86,7 +86,14 @@ export default function AdminsPage() {
     <AppShell>
       <div className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="mb-2 text-xs font-semibold uppercase tracking-[0.13em] text-emerald-800">Administrasi</p><h1 className="text-2xl font-semibold tracking-tight text-slate-950">Admin</h1><p className="mt-1 text-sm text-slate-600">Kelola akun dan akses Admin.</p></div><button className="inline-flex h-10 items-center gap-2 rounded-md bg-emerald-800 px-4 text-sm font-semibold text-white hover:bg-emerald-900" onClick={() => setDialog("create")} type="button"><Plus size={17} />Tambah Admin</button></div>
       {created && <section className="mb-5 border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-950"><div className="flex justify-between gap-4"><div><p className="font-semibold">Admin berhasil dibuat</p><p className="mt-1">Username: <strong>{created.username}</strong> · Password awal: <strong>{created.initialPassword}</strong>. Simpan sekarang, password tidak akan ditampilkan lagi.</p></div><button aria-label="Tutup" onClick={() => setCreated(null)} type="button"><X size={17} /></button></div></section>}
-      {error && <p className="mb-4 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="status">{error}</p>}
+      {error && (
+        <section className="mb-4 flex items-center justify-between border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900" role="status">
+          <span>{error}</span>
+          <button aria-label="Tutup pemberitahuan" className="text-emerald-800 hover:text-emerald-950" onClick={() => setError("")} type="button">
+            <X size={16} />
+          </button>
+        </section>
+      )}
       <section className="border-y border-slate-200 bg-white">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3"><label className="relative block w-full max-w-sm"><span className="sr-only">Cari Admin</span><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} /><input className="h-10 w-full rounded-md border border-slate-300 pl-9 pr-3 text-sm" onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Cari nama atau username" value={search} /></label><span className="text-xs text-slate-500">{adminsQuery.data?.pagination.total ?? 0} Admin</span></div>
         {adminsQuery.isError ? <p className="px-5 py-8 text-sm text-red-700">{adminsQuery.error.message}</p> : adminsQuery.isPending ? <p className="px-5 py-8 text-sm text-slate-500">Memuat Admin...</p> : adminsQuery.data.items.length === 0 ? <p className="px-5 py-10 text-center text-sm text-slate-500">Belum ada Admin.</p> : (
